@@ -20,6 +20,14 @@ create table users
     created_at    timestamp default CURRENT_TIMESTAMP
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'locality_type') THEN
+        CREATE TYPE locality_type AS ENUM ('Urban', 'Local');
+    END IF;
+END
+$$;
+
 create table properties
 (
     property_id uuid  default gen_random_uuid() not null
@@ -39,9 +47,6 @@ create table documents
     document_id          uuid      default gen_random_uuid() not null
         primary key,
     file_uri             text                                not null,
-    uploaded_by          uuid
-                                                             references users
-                                                                 on delete set null,
     uploaded_at          timestamp default CURRENT_TIMESTAMP,
     doc_no               varchar(100),
     dname                varchar(255),
@@ -57,6 +62,8 @@ create table documents
     seller_name          text[],
     purchaser_name       text[]
 );
+
+CREATE TYPE job_status AS ENUM ('scheduled', 'in_progress', 'done', 'failed');
 
 create table jobs
 (
