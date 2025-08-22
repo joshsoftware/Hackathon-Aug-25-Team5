@@ -16,7 +16,6 @@ def getPage(job):
         job_id = job['job_id']
         inputs = job['inputs']
         agent = requests.session()
-        #--- YOUR LOGIC STARTS HERE--------------
         url1 = job['inputs'][0]
         page1= agent.get(url1['url'], headers= url1['headers'], verify=False)
         sleep(sleep_time)
