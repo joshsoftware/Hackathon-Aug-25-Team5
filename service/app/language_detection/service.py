@@ -7,7 +7,6 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import logging
 from typing import Dict, Optional
-import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -231,26 +230,34 @@ class LanguageDetector:
         """
         return self.language_codes.copy()
 
-# Global instance
-language_detector = LanguageDetector()
 
-def detect_text_language(text: str) -> Dict[str, any]:
+# Abhi: Wrapper for the service to be used in other parts of the application
+class LanguageDetectionService:
     """
-    Convenience function to detect language of text
+    Service class to provide language detection functionality
+    """
     
-    Args:
-        text (str): Input text
+    def __init__(self):
+        self.language_detector = LanguageDetector()
+    
+    def detect_language(self, text: str) -> Dict[str, any]:
+        """
+        Detect language of input text
         
-    Returns:
-        Dict with language detection results
-    """
-    return language_detector.detect_language(text)
-
-def get_supported_languages() -> Dict[str, str]:
-    """
-    Get supported languages
+        Args:
+            text (str): Input text to detect language for
+            
+        Returns:
+            Dict with language detection results
+        """
+        return self.language_detector.detect_language(text)
     
-    Returns:
-        Dict of supported language codes and names
-    """
-    return language_detector.get_supported_languages()
+    def get_supported_languages(self) -> Dict[str, str]:
+        """
+        Get list of supported languages
+        
+        Returns:
+            Dictionary of language codes and names
+        """
+        return self.language_detector.get_supported_languages()
+
