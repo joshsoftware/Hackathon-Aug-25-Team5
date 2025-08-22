@@ -3,11 +3,14 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException
 from PIL import Image
 import pytesseract
 import time
 import os
+import json
+import traceback
+from table_parser import parse_table_to_json
 
 SRO_URL = "https://freesearchigrservice.maharashtra.gov.in/"
 
@@ -234,6 +237,122 @@ def fill_form(driver):
         logger.error(f"Error filling form: {str(e)}")
         return False
 
+def extract_table_data(driver):
+    """
+    Extract data from the registration table after search
+    Args:
+        driver: Selenium webdriver instance
+    Returns:
+        dict: Result of data extraction with status and data
+    """
+    try:
+        # Create data directory if it doesn't exist
+        output_dir = "data"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # Wait for 15 seconds for table to appear (increased from 10 to 15 seconds)
+        logger.info("Waiting 15 seconds for table to appear...")
+        time.sleep(15)
+        
+        # Take a screenshot of the page for debugging
+        driver.save_screenshot('page_after_search.png')
+        logger.info("Saved screenshot of the page after search to page_after_search.png")
+        
+        # Check if the table exists
+        logger.info("Checking if table exists...")
+        tables = driver.find_elements(By.TAG_NAME, 'table')
+        logger.info(f"Found {len(tables)} tables on the page")
+        
+        # Look for the specific table
+        registration_table = None
+        for i, table in enumerate(tables):
+            try:
+                table_id = table.get_attribute('id')
+                logger.info(f"Table {i+1} ID: {table_id}")
+                if table_id == 'RegistrationGrid':
+                    registration_table = table
+                    logger.info("Found RegistrationGrid table")
+                    break
+            except Exception as e:
+                logger.warning(f"Error getting table {i+1} ID: {str(e)}")
+        
+        if not registration_table:
+            logger.error("RegistrationGrid table not found on the page")
+            # Save page source for debugging
+            with open('page_source.html', 'w', encoding='utf-8') as f:
+                f.write(driver.page_source)
+            logger.info("Saved page source to page_source.html")
+            return {
+                "status": "error",
+                "message": "RegistrationGrid table not found on the page",
+                "output_file": None,
+                "record_count": 0,
+                "data": []
+            }
+        
+        # Get table HTML
+        table_html = registration_table.get_attribute('outerHTML')
+        
+        # Save the HTML for debugging
+        with open('table_html.html', 'w', encoding='utf-8') as f:
+            f.write(table_html)
+        logger.info("Saved table HTML to table_html.html")
+        
+        # Parse table data
+        page_data = parse_table_to_json(table_html)
+        
+        if not page_data:
+            logger.warning("No data found in the table")
+            return {
+                "status": "warning",
+                "message": "No data found in the table",
+                "output_file": None,
+                "record_count": 0,
+                "data": []
+            }
+        
+        # Save the data
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        output_file = os.path.join(output_dir, f"registration_data_{timestamp}.json")
+        
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(page_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Saved {len(page_data)} records to {output_file}")
+        
+        return {
+            "status": "success",
+            "message": "Data extracted successfully",
+            "output_file": output_file,
+            "record_count": len(page_data),
+            "data": page_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error extracting table data: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Save page source for debugging
+        try:
+            with open('error_page_source.html', 'w', encoding='utf-8') as f:
+                f.write(driver.page_source)
+            logger.info("Saved error page source to error_page_source.html")
+            
+            # Take a screenshot
+            driver.save_screenshot('error_screenshot.png')
+            logger.info("Saved error screenshot to error_screenshot.png")
+        except Exception as screenshot_error:
+            logger.error(f"Error saving debug info: {str(screenshot_error)}")
+        
+        return {
+            "status": "error",
+            "message": f"Data extraction failed: {str(e)}",
+            "output_file": None,
+            "record_count": 0,
+            "data": []
+        }
+
 def main(debug_mode=True):
     driver = None
     try:
@@ -276,6 +395,15 @@ def main(debug_mode=True):
             
         logger.info("Search completed successfully")
         
+        # Extract table data after successful search
+        logger.info("Extracting table data...")
+        result = extract_table_data(driver)
+        
+        if result["status"] == "success":
+            logger.info(f"Data extraction successful! {result['record_count']} records saved to {result['output_file']}")
+        else:
+            logger.error(f"Data extraction failed: {result['message']}")
+        
         if debug_mode:
             # Keep browser open in debug mode
             logger.info("Debug mode: Keeping browser open for 30 seconds...")
@@ -285,6 +413,7 @@ def main(debug_mode=True):
         logger.error(f"Page load timeout: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
     finally:
         if driver and not debug_mode:
             logger.info("Closing WebDriver...")
