@@ -9,6 +9,8 @@ import pytesseract
 import time
 import os
 
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
 SRO_URL = "https://freesearchigrservice.maharashtra.gov.in/"
 
 # Configure logging
