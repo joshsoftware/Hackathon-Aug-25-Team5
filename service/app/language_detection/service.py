@@ -13,6 +13,22 @@ import re
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Unicode script range constants for Indian languages and scripts
+DEVANAGARI_RANGE = (0x0900, 0x097F)  # Hindi, Marathi, Sanskrit
+BENGALI_RANGE = (0x0980, 0x09FF)     # Bengali, Assamese
+GURMUKHI_RANGE = (0x0A00, 0x0A7F)    # Punjabi
+GUJARATI_RANGE = (0x0A80, 0x0AFF)    # Gujarati
+ORIYA_RANGE = (0x0B00, 0x0B7F)       # Odia
+TAMIL_RANGE = (0x0B80, 0x0BFF)       # Tamil
+TELUGU_RANGE = (0x0C00, 0x0C7F)      # Telugu
+KANNADA_RANGE = (0x0C80, 0x0CFF)     # Kannada
+MALAYALAM_RANGE = (0x0D00, 0x0D7F)   # Malayalam
+ARABIC_RANGE = (0x0600, 0x06FF)      # Urdu (Arabic script)
+
+# Latin script range constants
+LATIN_UPPERCASE_RANGE = (0x0041, 0x005A)  # A-Z
+LATIN_LOWERCASE_RANGE = (0x0061, 0x007A)  # a-z
+
 class LanguageDetector:
     """
     Language detection service using AI4Bharat's IndicBERT model
@@ -103,18 +119,18 @@ class LanguageDetector:
         This is particularly effective for Indian languages
         """
         
-        # Define Unicode ranges for different scripts
+        # Define Unicode ranges for different scripts using constants
         script_ranges = {
-            'devanagari': (0x0900, 0x097F),  # Hindi, Marathi, Sanskrit
-            'bengali': (0x0980, 0x09FF),     # Bengali, Assamese
-            'gurmukhi': (0x0A00, 0x0A7F),    # Punjabi
-            'gujarati': (0x0A80, 0x0AFF),    # Gujarati
-            'oriya': (0x0B00, 0x0B7F),       # Odia
-            'tamil': (0x0B80, 0x0BFF),       # Tamil
-            'telugu': (0x0C00, 0x0C7F),      # Telugu
-            'kannada': (0x0C80, 0x0CFF),     # Kannada
-            'malayalam': (0x0D00, 0x0D7F),   # Malayalam
-            'arabic': (0x0600, 0x06FF),      # Urdu (Arabic script)
+            'devanagari': DEVANAGARI_RANGE,
+            'bengali': BENGALI_RANGE,
+            'gurmukhi': GURMUKHI_RANGE,
+            'gujarati': GUJARATI_RANGE,
+            'oriya': ORIYA_RANGE,
+            'tamil': TAMIL_RANGE,
+            'telugu': TELUGU_RANGE,
+            'kannada': KANNADA_RANGE,
+            'malayalam': MALAYALAM_RANGE,
+            'arabic': ARABIC_RANGE,
         }
         
         # Count characters in each script
@@ -133,7 +149,8 @@ class LanguageDetector:
                     break
             else:
                 # Check if it's Latin script (English)
-                if (0x0041 <= char_code <= 0x005A) or (0x0061 <= char_code <= 0x007A):
+                if (LATIN_UPPERCASE_RANGE[0] <= char_code <= LATIN_UPPERCASE_RANGE[1]) or \
+                   (LATIN_LOWERCASE_RANGE[0] <= char_code <= LATIN_LOWERCASE_RANGE[1]):
                     latin_count += 1
         
         # Determine the dominant script
