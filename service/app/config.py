@@ -5,7 +5,10 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+    ENVIRONMENT: str = "development"
     
+    # Database - directly from environment
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "") 
     # AI API Keys
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
