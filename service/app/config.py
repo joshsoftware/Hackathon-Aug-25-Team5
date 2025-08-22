@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     
     # MinIO Configuration - read from environment variables
-    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
-    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "admin")
-    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "password123")
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "")
+    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "")
+    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "")
     MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
     
     # Crawling
