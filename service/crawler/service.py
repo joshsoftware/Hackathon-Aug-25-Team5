@@ -212,19 +212,51 @@ def fill_form(driver):
         )
         Select(district_dropdown).select_by_index(1)
         
-        # Wait for talukas to load
-        time.sleep(3)  # Give time for taluka options to populate
+        # Wait longer for talukas to load
+        time.sleep(5)  # Increased from 3 to 5 seconds
+        
+        # Get taluka dropdown and check available options
         taluka_dropdown = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//select[@id='ddltahsil']"))
         )
-        Select(taluka_dropdown).select_by_index(13)
+        taluka_select = Select(taluka_dropdown)
+        taluka_options = taluka_select.options
         
-        # Wait for villages to load
-        time.sleep(3)  # Give time for village options to populate
+        # Log available taluka options
+        logger.info(f"Found {len(taluka_options)} taluka options")
+        for i, option in enumerate(taluka_options):
+            logger.info(f"Taluka option {i}: {option.text}")
+        
+        # Select a valid taluka option
+        taluka_index = min(13, len(taluka_options) - 1)  # Use 13 if available, otherwise use the last option
+        if taluka_index > 0:  # Skip the first option if there are more options (usually a placeholder)
+            logger.info(f"Selecting taluka option at index {taluka_index}")
+            taluka_select.select_by_index(taluka_index)
+        else:
+            logger.info("No valid taluka options found, using default")
+        
+        # Wait longer for villages to load
+        time.sleep(5)  # Increased from 3 to 5 seconds
+        
+        # Get village dropdown and check available options
         village_dropdown = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//select[@id='ddlvillage']"))
         )
-        Select(village_dropdown).select_by_index(1)
+        village_select = Select(village_dropdown)
+        village_options = village_select.options
+        
+        # Log available village options
+        logger.info(f"Found {len(village_options)} village options")
+        for i, option in enumerate(village_options):
+            logger.info(f"Village option {i}: {option.text}")
+        
+        # Select a valid village option
+        village_index = min(1, len(village_options) - 1)  # Use 1 if available, otherwise use the last option
+        if village_index > 0:  # Skip the first option if there are more options (usually a placeholder)
+            logger.info(f"Selecting village option at index {village_index}")
+            village_select.select_by_index(village_index)
+        else:
+            logger.info("No valid village options found, using default")
         
         # Enter property number
         if not enter_property_number(driver):
@@ -235,6 +267,7 @@ def fill_form(driver):
         
     except Exception as e:
         logger.error(f"Error filling form: {str(e)}")
+        logger.error(traceback.format_exc())
         return False
 
 def extract_table_data(driver):
@@ -291,19 +324,314 @@ def extract_table_data(driver):
                 "data": []
             }
         
-        # Get table HTML
-        table_html = registration_table.get_attribute('outerHTML')
+        # Initialize all_data to store data from all pages
+        all_data = []
+        current_page = 1
+        max_pages_processed = 0  # Track the highest page number processed
+        page_set_base = 0  # Track the base of the current page set (0 for pages 1-10, 10 for pages 11-20, etc.)
         
-        # Save the HTML for debugging
-        with open('table_html.html', 'w', encoding='utf-8') as f:
-            f.write(table_html)
-        logger.info("Saved table HTML to table_html.html")
+        # Process all pages
+        while True:
+            logger.info(f"Processing page {current_page}")
+            
+            # Get table HTML for current page
+            table_html = registration_table.get_attribute('outerHTML')
+            
+            # Save the HTML for debugging
+            with open(f'table_html_page_{current_page}.html', 'w', encoding='utf-8') as f:
+                f.write(table_html)
+            logger.info(f"Saved table HTML for page {current_page} to table_html_page_{current_page}.html")
+            
+            # Parse table data for current page
+            page_data = parse_table_to_json(table_html)
+            
+            if page_data:
+                # Add data from current page to all_data
+                all_data.extend(page_data)
+                logger.info(f"Extracted {len(page_data)} records from page {current_page}")
+                # Update max_pages_processed
+                max_pages_processed = max(max_pages_processed, current_page)
+            else:
+                logger.warning(f"No data found on page {current_page}")
+            
+            # Check if there are more pages
+            try:
+                # Look for pagination row
+                pagination_row = driver.find_element(By.CSS_SELECTOR, 'tr[style*="background-color:#CCCCCC"]')
+                
+                # Find all page links
+                page_links = pagination_row.find_elements(By.TAG_NAME, 'a')
+                
+                # Log available page links
+                logger.info(f"Found {len(page_links)} page links")
+                page_link_texts = []
+                for i, link in enumerate(page_links):
+                    try:
+                        link_text = link.text
+                        page_link_texts.append(link_text)
+                        logger.info(f"Page link {i+1} text: {link_text}")
+                    except StaleElementReferenceException:
+                        logger.warning(f"Page link {i+1} is stale, skipping")
+                
+                # Check if we're at the last page by looking at the last link
+                # If the last link is a number and it's the current page, we're at the last page
+                is_last_page = False
+                if page_links:
+                    try:
+                        last_link = page_links[-1]
+                        last_link_text = last_link.text
+                        
+                        # If the last link is a number and it's the current page, we're at the last page
+                        if last_link_text.isdigit() and int(last_link_text) == current_page:
+                            logger.info(f"Current page {current_page} is the last page (last link is {last_link_text})")
+                            is_last_page = True
+                        
+                        # If the last link is not "..." and the current page is the highest number in the pagination
+                        if last_link_text != "...":
+                            # Find the highest page number in the pagination
+                            highest_page = current_page
+                            for link in page_links:
+                                try:
+                                    if link.text.isdigit() and int(link.text) > highest_page:
+                                        highest_page = int(link.text)
+                                except StaleElementReferenceException:
+                                    continue
+                            
+                            if current_page == highest_page:
+                                logger.info(f"Current page {current_page} is the last page (highest page in pagination)")
+                                is_last_page = True
+                    except StaleElementReferenceException:
+                        logger.warning("Last link is stale, cannot determine if this is the last page")
+                
+                if is_last_page:
+                    logger.info("Reached the last page, pagination complete")
+                    break
+                
+                # Check if we're at a page that's a multiple of 10 (e.g., 10, 20, 30)
+                if current_page % 10 == 0:
+                    logger.info(f"At page {current_page}, looking for '...' link to navigate to next set")
+                    
+                    # Find all "..." links
+                    dots_links = []
+                    for link in page_links:
+                        try:
+                            if link.text == "...":
+                                dots_links.append(link)
+                        except StaleElementReferenceException:
+                            continue
+                    
+                    # If there are multiple "..." links, we need to click the last one (right side)
+                    if len(dots_links) > 0:
+                        # Click the last "..." link (right side)
+                        right_dots_link = dots_links[-1]  # Last "..." link
+                        logger.info("Found '...' link at the right, clicking to see next set of pages")
+                        
+                        # Update the page set base before clicking
+                        page_set_base = (current_page // 10) * 10
+                        logger.info(f"Updating page set base to {page_set_base}")
+                        
+                        right_dots_link.click()
+                        time.sleep(3)
+                        
+                        # After clicking "...", find the table and pagination again
+                        registration_table = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.ID, 'RegistrationGrid'))
+                        )
+                        
+                        pagination_row = driver.find_element(By.CSS_SELECTOR, 'tr[style*="background-color:#CCCCCC"]')
+                        page_links = pagination_row.find_elements(By.TAG_NAME, 'a')
+                        
+                        # Log the new pagination links
+                        logger.info("New pagination links after clicking '...':")
+                        new_page_link_texts = []
+                        for i, link in enumerate(page_links):
+                            try:
+                                link_text = link.text
+                                new_page_link_texts.append(link_text)
+                                logger.info(f"New page link {i+1} text: {link_text}")
+                            except StaleElementReferenceException:
+                                logger.warning(f"New page link {i+1} is stale, skipping")
+                        
+                        # The expected next page number after clicking "..." at page 10, 20, etc.
+                        expected_next_page = page_set_base + 11
+                        logger.info(f"Expected next page after clicking '...' is {expected_next_page}")
+                        
+                        # Try to find the expected next page link
+                        next_page_link = None
+                        for link in page_links:
+                            try:
+                                if link.text.isdigit():
+                                    page_num = int(link.text)
+                                    # If we find the expected next page, use it
+                                    if page_num == expected_next_page:
+                                        next_page_link = link
+                                        logger.info(f"Found link to expected next page {expected_next_page}")
+                                        break
+                                    # Otherwise, keep track of the first numeric link we find
+                                    elif next_page_link is None:
+                                        next_page_link = link
+                                        logger.info(f"Found numeric link: page {link.text}")
+                            except StaleElementReferenceException:
+                                continue
+                        
+                        if next_page_link:
+                            try:
+                                next_page_text = next_page_link.text
+                                logger.info(f"Clicking link to page {next_page_text}")
+                                next_page_link.click()
+                                time.sleep(3)
+                                
+                                # If the page number is small (like 2, 3, etc.) but we're expecting a higher number,
+                                # adjust it based on the page set base
+                                if next_page_text.isdigit():
+                                    page_num = int(next_page_text)
+                                    if page_num < 10 and page_set_base > 0:
+                                        # This is likely the next set of pages (e.g., 11-20, 21-30)
+                                        # Adjust the current page accordingly
+                                        current_page = page_set_base + page_num
+                                        logger.info(f"Adjusted page number from {page_num} to {current_page} based on page set base {page_set_base}")
+                                    else:
+                                        current_page = page_num
+                                else:
+                                    # If we can't parse the page number, just increment
+                                    current_page += 1
+                                
+                                # Re-find the table after page change
+                                registration_table = WebDriverWait(driver, 10).until(
+                                    EC.presence_of_element_located((By.ID, 'RegistrationGrid'))
+                                )
+                                continue
+                            except StaleElementReferenceException:
+                                logger.warning("Next page link became stale, retrying pagination")
+                                # Re-find pagination elements
+                                pagination_row = driver.find_element(By.CSS_SELECTOR, 'tr[style*="background-color:#CCCCCC"]')
+                                page_links = pagination_row.find_elements(By.TAG_NAME, 'a')
+                        else:
+                            logger.warning("Could not find any numeric page link after clicking '...'")
+                            break
+                    else:
+                        logger.warning("No '...' link found at page multiple of 10")
+                
+                # Regular pagination - find the next page link
+                next_page_found = False
+                for link in page_links:
+                    try:
+                        # Check if this is a numeric link for the next page
+                        if link.text.isdigit() and int(link.text) == current_page + 1:
+                            logger.info(f"Found link to page {link.text}")
+                            link.click()
+                            next_page_found = True
+                            current_page += 1
+                            # Wait for table to update
+                            time.sleep(3)
+                            # Re-find the table after page change
+                            registration_table = WebDriverWait(driver, 10).until(
+                                EC.presence_of_element_located((By.ID, 'RegistrationGrid'))
+                            )
+                            break
+                    except StaleElementReferenceException:
+                        continue
+                
+                # If no next page link found, check for "..." link
+                if not next_page_found:
+                    # Check for "..." link
+                    dots_link = None
+                    for link in page_links:
+                        try:
+                            if link.text == "...":
+                                dots_link = link
+                                break
+                        except StaleElementReferenceException:
+                            continue
+                    
+                    if dots_link:
+                        logger.info("Found '...' link, clicking to see more pages")
+                        
+                        # Update the page set base before clicking
+                        if current_page % 10 != 0:  # Only update if we're not at a multiple of 10
+                            page_set_base = (current_page // 10) * 10
+                            logger.info(f"Updating page set base to {page_set_base}")
+                        
+                        dots_link.click()
+                        time.sleep(3)
+                        
+                        # After clicking "...", find the table again
+                        registration_table = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.ID, 'RegistrationGrid'))
+                        )
+                        
+                        # Find the pagination row again
+                        pagination_row = driver.find_element(By.CSS_SELECTOR, 'tr[style*="background-color:#CCCCCC"]')
+                        page_links = pagination_row.find_elements(By.TAG_NAME, 'a')
+                        
+                        # Log the new pagination links
+                        logger.info("New pagination links after clicking '...':")
+                        for i, link in enumerate(page_links):
+                            try:
+                                logger.info(f"New page link {i+1} text: {link.text}")
+                            except StaleElementReferenceException:
+                                logger.warning(f"New page link {i+1} is stale, skipping")
+                        
+                        # Try to find the first numeric link in the new set
+                        numeric_link = None
+                        for link in page_links:
+                            try:
+                                if link.text.isdigit():
+                                    numeric_link = link
+                                    break
+                            except StaleElementReferenceException:
+                                continue
+                        
+                        if numeric_link:
+                            try:
+                                logger.info(f"Clicking first available numeric link: {numeric_link.text}")
+                                numeric_link.click()
+                                time.sleep(3)
+                                
+                                # If the page number is small (like 2, 3, etc.) but we're expecting a higher number,
+                                # adjust it based on the page set base
+                                if numeric_link.text.isdigit():
+                                    page_num = int(numeric_link.text)
+                                    if page_num < 10 and page_set_base > 0:
+                                        # This is likely the next set of pages (e.g., 11-20, 21-30)
+                                        # Adjust the current page accordingly
+                                        current_page = page_set_base + page_num
+                                        logger.info(f"Adjusted page number from {page_num} to {current_page} based on page set base {page_set_base}")
+                                    else:
+                                        current_page = page_num
+                                else:
+                                    # If we can't parse the page number, just increment
+                                    current_page += 1
+                                
+                                # Re-find the table after page change
+                                registration_table = WebDriverWait(driver, 10).until(
+                                    EC.presence_of_element_located((By.ID, 'RegistrationGrid'))
+                                )
+                                continue
+                            except StaleElementReferenceException:
+                                logger.warning("Numeric link became stale, pagination may be incomplete")
+                    
+                    # If no "..." link or no numeric link found after clicking "...", we're done
+                    if not dots_link or not numeric_link:
+                        logger.info("No more pages found, pagination complete")
+                        break
+                
+                # If no next page found and no "..." link, we're done
+                if not next_page_found and not dots_link:
+                    logger.info("No more pages found, pagination complete")
+                    break
+                    
+            except NoSuchElementException:
+                logger.info("No pagination found, only one page of results")
+                break
+            except Exception as e:
+                logger.error(f"Error during pagination: {str(e)}")
+                logger.error(traceback.format_exc())
+                break
         
-        # Parse table data
-        page_data = parse_table_to_json(table_html)
-        
-        if not page_data:
-            logger.warning("No data found in the table")
+        # Check if we found any data
+        if not all_data:
+            logger.warning("No data found in any page")
             return {
                 "status": "warning",
                 "message": "No data found in the table",
@@ -312,21 +640,21 @@ def extract_table_data(driver):
                 "data": []
             }
         
-        # Save the data
+        # Save all data to a single JSON file
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         output_file = os.path.join(output_dir, f"registration_data_{timestamp}.json")
         
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(page_data, f, ensure_ascii=False, indent=2)
+            json.dump(all_data, f, ensure_ascii=False, indent=2)
         
-        logger.info(f"Saved {len(page_data)} records to {output_file}")
+        logger.info(f"Saved {len(all_data)} records from {max_pages_processed} pages to {output_file}")
         
         return {
             "status": "success",
-            "message": "Data extracted successfully",
+            "message": f"Data extracted successfully from {max_pages_processed} pages",
             "output_file": output_file,
-            "record_count": len(page_data),
-            "data": page_data
+            "record_count": len(all_data),
+            "data": all_data
         }
         
     except Exception as e:
@@ -362,7 +690,7 @@ def main(debug_mode=True):
         options.page_load_strategy = 'normal'  # Wait for page load
         driver = webdriver.Chrome(options=options)
         driver.maximize_window()
-        driver.set_page_load_timeout(30)  # 30 seconds timeout
+        driver.set_page_load_timeout(60)  # Increased to 60 seconds timeout
         
         # Navigate to website
         logger.info("Navigating to Maharashtra IGR service...")

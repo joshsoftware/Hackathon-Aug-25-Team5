@@ -1,89 +1,104 @@
-from bs4 import BeautifulSoup
-import json
 import logging
+import re
+from bs4 import BeautifulSoup
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-def parse_table_to_json(html_content):
+def parse_table_to_json(table_html):
     """
-    Parse HTML table content into JSON format
+    Parse HTML table to JSON format
     Args:
-        html_content (str): HTML table content as string
+        table_html: HTML content of the table
     Returns:
-        list: List of dictionaries containing parsed data
+        list: List of dictionaries, each representing a row in the table
     """
     try:
-        soup = BeautifulSoup(html_content, 'html.parser')
-        table = soup.find('table', {'id': 'RegistrationGrid'})
+        # Parse HTML with BeautifulSoup
+        soup = BeautifulSoup(table_html, 'html.parser')
         
-        if not table:
-            logger.warning("Table with ID 'RegistrationGrid' not found in HTML content")
+        # Find all rows in the table
+        rows = soup.find_all('tr')
+        
+        # Check if we have enough rows (at least header + one data row)
+        if len(rows) < 2:
+            logger.warning("Table has less than 2 rows, cannot parse")
             return []
         
-        # Get headers
+        # Extract header row
+        header_row = rows[0]
         headers = []
-        header_row = table.find('tr', {'style': lambda x: x and 'background-color:SteelBlue' in x})
-        if not header_row:
-            logger.warning("Header row not found in table")
-            return []
-            
         for th in header_row.find_all('th'):
-            headers.append(th.text.strip())
+            # Clean up header text
+            header_text = th.text.strip()
+            headers.append(header_text)
         
-        # Parse rows
-        result = []
-        data_rows = table.find_all('tr')
+        # Check if we have headers
+        if not headers:
+            logger.warning("No headers found in the table")
+            return []
         
-        # Skip header row and pagination row (if present)
-        data_rows = [row for row in data_rows if not (
-            row.get('style') and ('background-color:SteelBlue' in row.get('style') or 'background-color:#CCCCCC' in row.get('style'))
-        )]
+        logger.info(f"Found {len(headers)} headers: {headers}")
         
-        for row in data_rows:
-            cells = row.find_all('td')
+        # Extract data rows
+        data = []
+        for row in rows[1:]:
+            # Skip pagination row
+            if 'background-color:#CCCCCC' in str(row):
+                continue
+                
+            # Extract cells
+            cells = row.find_all(['td', 'th'])
+            
+            # Skip if no cells
             if not cells:
-                continue  # Skip rows without cells
+                continue
                 
+            # Create row data
             row_data = {}
-            
-            # Only process cells up to the number of headers
             for i, cell in enumerate(cells):
-                if i >= len(headers):
-                    break  # Skip cells beyond headers
+                # Skip button cells
+                if cell.find('input', {'type': 'button'}):
+                    continue
                     
-                value = cell.text.strip()
-                # Handle JSON-like strings in seller and purchaser names
-                if headers[i] in ['Seller Name', 'Purchaser Name'] and value.startswith('{'):
-                    try:
-                        # Remove curly braces and split by commas
-                        names = value.strip('{}').split(',')
-                        value = [name.strip() for name in names if name.strip()]
-                    except Exception as e:
-                        logger.warning(f"Error parsing names: {str(e)}")
+                # Get header for this cell
+                if i < len(headers):
+                    header = headers[i]
+                else:
+                    # If we have more cells than headers, use index as header
+                    header = f"Column_{i}"
                 
-                row_data[headers[i]] = value
+                # Clean up cell text
+                cell_text = cell.text.strip()
+                
+                # Handle JSON-like content in cells
+                if cell_text.startswith('{') and cell_text.endswith('}'):
+                    try:
+                        # Try to parse as a list of items
+                        items = re.findall(r'"([^"]*)"', cell_text)
+                        if items:
+                            cell_text = items
+                        else:
+                            # Try to extract items from a different format
+                            items = cell_text.strip('{}').split(',')
+                            cell_text = [item.strip() for item in items if item.strip()]
+                    except Exception as e:
+                        logger.warning(f"Error parsing JSON-like content: {str(e)}")
+                
+                # Add to row data
+                row_data[header] = cell_text
             
-            # Only add rows with data
+            # Add row to data if not empty
             if row_data:
-                result.append(row_data)
+                data.append(row_data)
         
-        return result
+        logger.info(f"Extracted {len(data)} rows of data")
+        return data
         
     except Exception as e:
         logger.error(f"Error parsing table: {str(e)}")
         return []
-
-def format_registration_data(html_content):
-    """
-    Main function to format registration data from HTML to JSON
-    Args:
-        html_content (str): HTML content containing the registration table
-    Returns:
-        str: JSON formatted string of the data
-    """
-    try:
-        data = parse_table_to_json(html_content)
-        return json.dumps(data, indent=2, ensure_ascii=False)
-    except Exception as e:
-        logger.error(f"Error formatting data: {str(e)}")
-        return "[]"  # Return empty array as string in case of error
