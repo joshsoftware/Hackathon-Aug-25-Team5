@@ -1,103 +1,248 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Shield, Clock, BarChart3, FileText, Users, CheckCircle, Zap, Award, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import Image from "next/image";
+import deedDemoImage from "@/assets/deed-demo-image.jpg";
+import { Navigation } from '@/components/Navigation';
+
+const features = [
+  {
+    icon: Zap,
+    title: "AI-Powered Analysis",
+    description: "Advanced machine learning algorithms process Index II documents with 99.9% accuracy in seconds",
+    color: "text-yellow-500",
+    gradient: "from-yellow-400 to-orange-500",
+  },
+  {
+    icon: Clock,
+    title: "Real-Time Processing", 
+    description: "Instant chronological visualization of property history with interactive timeline generation",
+    color: "text-blue-500",
+    gradient: "from-blue-400 to-cyan-500",
+  },
+  {
+    icon: Shield,
+    title: "Advanced Risk Detection",
+    description: "Comprehensive legal risk analysis with predictive insights and compliance monitoring",
+    color: "text-green-500",
+    gradient: "from-green-400 to-emerald-500",
+  },
+  {
+    icon: Award,
+    title: "Professional Reports",
+    description: "Generate court-ready documentation with automated compliance verification and audit trails",
+    color: "text-purple-500",
+    gradient: "from-purple-400 to-pink-500",
+  },
+];
+
+const benefits = [
+  "Reduce document review time by 85% with AI automation",
+  "Identify potential legal issues before they become problems",
+  "Generate professional reports with one-click compliance",
+  "Track portfolio-wide risk metrics in real-time",
+  "Ensure regulatory compliance with automatic updates",
+  "Access 24/7 cloud-based analysis from anywhere",
+];
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="space-y-0">
+      <Navigation/>
+      {/* Hero Section */}
+      <section className="relative py-24 lg:py-32 overflow-hidden">
+        {/* Background with modern gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"></div>
+        
+        {/* Floating elements - using a placeholder for now */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500"></div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        
+        <div className="relative container mx-auto px-6">
+          <div className="max-w-5xl mx-auto text-center text-white space-y-10">
+            <div className="space-y-6">
+              <Badge variant="outline" className="border-white/20 text-white hover:bg-white/10 rounded-full px-6 py-2 backdrop-blur-sm text-lg">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                  Revolutionary Legal Tech Platform
+              </Badge>
+              
+              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+                Transform Property Legal
+                <span className="block bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent">
+                  Analysis Forever
+                </span>
+              </h1>
+              
+              <p className="text-xl lg:text-2xl text-white/90 max-w-4xl mx-auto leading-relaxed">
+                Revolutionary AI-powered platform that automates property legal documentation analysis, 
+                generates comprehensive timelines, and delivers actionable risk insights in minutes, not days.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-center pt-6">
+              <Button
+                asChild
+                size="lg"
+                className="bg-white text-blue-900 hover:bg-white/90 shadow-lg rounded-xl px-12 py-6 text-xl font-semibold"
+              >
+                <Link href="/upload" className="flex items-center">
+                  Upload your document
+                  <ArrowRight className="w-6 h-6 ml-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 gradient-card">
+        <div className="container mx-auto px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center space-y-6 mb-20">
+              <Badge variant="outline" className="text-lg rounded-full px-4 py-2 text-primary border-primary/20">
+                Advanced Technology
+              </Badge>
+              <h2 className="text-4xl lg:text-5xl font-bold text-foreground">
+                Next-Generation Legal Technology
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Experience the future of property legal analysis with our comprehensive AI-powered platform 
+                that delivers unprecedented speed, accuracy, and insights.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 xl:grid-cols-4 gap-8">
+              {features.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <Card key={index} className="floating-card shadow-medium rounded-2xl overflow-hidden">
+                    <CardContent className="p-8 text-center space-y-6">
+                      <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-r ${feature.gradient} shadow-large flex items-center justify-center`}>
+                        <Icon className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="space-y-3">
+                        <h3 className="text-xl font-bold text-foreground">
+                          {feature.title}
+                        </h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-24 bg-blue-50/50">
+        <div className="container mx-auto px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-10">
+                <div className="space-y-6">
+                  <Badge variant="outline" className="rounded-full px-6 py-3 text-lg text-blue-600 border-blue-600/20">
+                    Professional Results
+                  </Badge>
+                  <h2 className="text-4xl lg:text-5xl font-bold text-gray-900">
+                    Revolutionize Your 
+                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
+                      Legal Workflow
+                    </span>
+                  </h2>
+                  <p className="text-xl text-gray-600 leading-relaxed">
+                    Join the legal technology revolution. Our platform has transformed how hundreds 
+                    of legal professionals handle property analysis, delivering results that exceed expectations.
+                  </p>
+                </div>
+                
+                <div className="grid gap-4">
+                  {benefits.map((benefit, index) => (
+                    <div key={index} className="flex items-start space-x-4 p-4 rounded-xl bg-white/70 shadow-sm">
+                      <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-900 font-medium">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex items-center space-x-6 pt-6">
+                  <Button asChild size="lg" className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl px-10 py-5 text-xl font-semibold">
+                    <Link href="/upload">
+                      Get Started Now
+                      <ArrowRight className="w-6 h-6 ml-3" />
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="lg" asChild className="rounded-xl px-10 py-6 text-xl font-semibold">
+                    <Link href="/dashboard">Explore Dashboard</Link>
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-8">
+                <div className="relative">
+                  <div className="w-full h-96 rounded-2xl overflow-hidden shadow-xl">
+                    <Image
+                      src={deedDemoImage}
+                      alt="AI-powered legal document analysis"
+                      width={600}
+                      height={400}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 bg-gradient-to-r from-blue-600 to-purple-600 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500"></div>
+        </div>
+        <div className="relative container mx-auto px-6 text-center">
+          <div className="max-w-4xl mx-auto space-y-10 text-white">
+            <div className="space-y-6">
+              <h2 className="text-4xl lg:text-6xl font-bold">
+                Ready to Experience the Future?
+              </h2>
+              <p className="text-xl lg:text-2xl text-white/90 leading-relaxed">
+                Join thousands of legal professionals who've already transformed their practice 
+                with PropertyLegal Pro. Start your free analysis today.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Button
+                asChild
+                size="lg"
+                className="bg-white text-blue-600 hover:bg-white/90 shadow-lg rounded-xl px-10 py-6 text-lg font-semibold"
+              >
+                <Link href="/upload">
+                  Upload Your First Document
+                  <FileText className="w-5 h-5 ml-2" />
+                </Link>
+              </Button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-gray-200">
+              <span>© 2024 PropertyLegal Pro. All rights reserved.</span>
+              <span>•</span>
+              <span>Privacy Policy</span>
+              <span>•</span>
+              <span>Terms of Service</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }

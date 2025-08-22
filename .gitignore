@@ -70,3 +70,6 @@ docker/.env
 # Temporary folders
 tmp/
 temp/
+
+venv/
+__pycache__/
