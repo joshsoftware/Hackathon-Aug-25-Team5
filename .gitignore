@@ -1,1 +1,72 @@
 service/.env
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# UI App dependencies
+ui-app/node_modules
+ui-app/.pnp
+ui-app/.pnp.*
+ui-app/.yarn/*
+!ui-app/.yarn/patches
+!ui-app/.yarn/plugins
+!ui-app/.yarn/releases
+!ui-app/.yarn/versions
+
+# UI App testing
+ui-app/coverage
+
+# UI App next.js
+ui-app/.next/
+ui-app/out/
+
+# UI App production
+ui-app/build
+
+# UI App debug
+ui-app/npm-debug.log*
+ui-app/yarn-debug.log*
+ui-app/yarn-error.log*
+ui-app/.pnpm-debug.log*
+
+# UI App vercel
+ui-app/.vercel
+
+# UI App typescript
+ui-app/*.tsbuildinfo
+ui-app/next-env.d.ts
+
+# Environment Files
+.env*
+*.env
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+*.pem
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+docker/.env
+
+# Temporary folders
+tmp/
+temp/
