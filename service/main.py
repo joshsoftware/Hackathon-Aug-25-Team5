@@ -2,8 +2,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import logging
 
-from app.routers import ai_router, crawler_router
+from app.core.minio_service import minio_service
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Zameendaar - Property History Tracker",
@@ -20,9 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(ai_router.router, prefix="/ai", tags=["ai"])
-app.include_router(crawler_router.router, prefix="/crawler", tags=["crawler"])
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    logger.info("Initializing MinIO buckets...")
+    minio_service.initialize_buckets()
+    logger.info("MinIO initialization completed")
+
+
 
 @app.get("/")
 async def root():
