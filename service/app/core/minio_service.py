@@ -7,12 +7,24 @@ logger = logging.getLogger(__name__)
 
 class MinIOService:
     def __init__(self):
+        # Get MinIO settings with fallbacks
+        endpoint = settings.MINIO_ENDPOINT or "minio:9000"
+        access_key = settings.MINIO_ACCESS_KEY or "admin"
+        secret_key = settings.MINIO_SECRET_KEY or "password123"
+        secure = settings.MINIO_SECURE
+        
+        # Parse the endpoint to remove protocol
+        endpoint = endpoint.replace("http://", "").replace("https://", "")
+        
+        logger.info(f"Initializing MinIO client with endpoint: {endpoint}")
+        
         self.client = Minio(
-            settings.MINIO_ENDPOINT.replace("http://", "").replace("https://", ""),
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            secure=settings.MINIO_SECURE
+            endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure
         )
+        logger.info("MinIO client initialized successfully")
     
     def initialize_buckets(self):
         """Initialize required buckets for the application"""

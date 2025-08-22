@@ -14,6 +14,9 @@ COPY service/requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Docling specifically with its dependencies
+RUN pip install --no-cache-dir docling==2.47.0
+
 # Copy application code
 COPY service/ .
 

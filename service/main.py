@@ -5,6 +5,7 @@ import uvicorn
 import logging
 
 from app.core.minio_service import minio_service
+from app.routers.document_router import router as document_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +33,8 @@ async def startup_event():
     minio_service.initialize_buckets()
     logger.info("MinIO initialization completed")
 
+# Include routers
+app.include_router(document_router, prefix="/document", tags=["document"])
 
 
 @app.get("/")
