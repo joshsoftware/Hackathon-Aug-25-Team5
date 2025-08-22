@@ -9,6 +9,8 @@ import pytesseract
 import time
 import os
 
+SRO_URL = "https://freesearchigrservice.maharashtra.gov.in/"
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -245,7 +247,7 @@ def main(debug_mode=True):
         
         # Navigate to website
         logger.info("Navigating to Maharashtra IGR service...")
-        driver.get("https://freesearchigrservice.maharashtra.gov.in/")
+        driver.get(SRO_URL)
         
         # Wait for page to be fully loaded
         WebDriverWait(driver, 20).until(
