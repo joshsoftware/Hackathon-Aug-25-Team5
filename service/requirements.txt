@@ -10,10 +10,14 @@ sentencepiece==0.2.1
 deep-translator==1.11.4
 selenium==4.15.2
 Pillow==10.4.0
+# To run crawling script need Pillow==11.3.0, Need to discuss this with team
 pytesseract==0.3.13
+
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
 sqlalchemy[asyncio]==2.0.23
 minio==7.2.0
 opencv-python==4.12.0.88
 surya-ocr==0.15.4
+numpy>=1.21.0
+requests>=2.25.0

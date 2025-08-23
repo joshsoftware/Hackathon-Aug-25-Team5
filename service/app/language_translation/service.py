@@ -3,6 +3,10 @@ from typing import Dict, Optional, List
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from IndicTransToolkit import IndicProcessor
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from language_detection.service import LanguageDetectionService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -95,10 +99,61 @@ class IndicTransOnlyTranslator:
             logger.error(f"Translation error: {e}")
             return []
 
-if __name__ == "__main__":
-    translator = IndicTransOnlyTranslator()
-    sentences = ["नमस्कार", "माझं नाव अभिषेक आहे.", "मराठी भाषा सुंदर आहे", "कृषी विकासासाठी नवीन योजना आखण्यात आली आहे.", "पर्यावरण संरक्षणासाठी नवे उपाय योजित आहेत."]
-    translations = translator.translate(sentences, src_lang="mar_Deva", tgt_lang="eng_Latn")
-    for s, t in zip(sentences, translations):
-        print(f"Marathi: {s}")
-        print(f"English: {t}")
+class LanguageTranslationService:
+    """Language detection service using AI4Bharat's language detection model.
+    This service detects the language of input text using a rule-based approach combined with script detection.
+    """
+    
+    def translate_sentences(self, sentences: List[str]) -> None:
+        translator = IndicTransOnlyTranslator()
+        lang_detection = LanguageDetectionService()
+
+        # Separate English and non-English sentences
+        english_sentences = []
+        non_english_sentences = []
+        sentence_info = []
+        
+        for sentence in sentences:
+            detected_lang = lang_detection.detect_language(sentence)
+            info = {
+                'sentence': sentence,
+                'detected_lang': detected_lang,
+                'is_english': detected_lang['language_code'] == 'en'
+            }
+            sentence_info.append(info)
+            
+            if info['is_english']:
+                english_sentences.append(sentence)
+            else:
+                non_english_sentences.append(sentence)
+        
+        # Translate only non-English sentences in batch
+        if non_english_sentences:
+            translations = translator.translate(non_english_sentences, src_lang="mar_Deva", tgt_lang="eng_Latn")
+        else:
+            translations = []
+        
+        results = []
+        # Display results
+        translation_index = 0
+        for info in sentence_info:
+            sentence = info['sentence']
+            detected_lang = info['detected_lang']
+
+            result_obj = {
+                'sentence': sentence,
+                'detected_language': f"Detected Language: {detected_lang['language_name']} ({detected_lang['language_code']})",
+                'english': None,
+                'marathi': None
+            }
+
+            if info['is_english']:
+                result_obj['english'] = sentence
+            else:
+                result_obj['marathi'] = sentence
+                result_obj['english'] = translations[translation_index]
+                translation_index += 1
+            
+            results.append(result_obj)
+
+        return results

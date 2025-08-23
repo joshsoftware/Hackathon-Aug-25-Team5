@@ -20,6 +20,14 @@ create table users
     created_at    timestamp default CURRENT_TIMESTAMP
 );
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'locality_type') THEN
+        CREATE TYPE locality_type AS ENUM ('Urban', 'Local');
+    END IF;
+END
+$$;
+
 create table properties
 (
     property_id uuid  default gen_random_uuid() not null
@@ -39,21 +47,23 @@ create table documents
     document_id          uuid      default gen_random_uuid() not null
         primary key,
     file_uri             text                                not null,
-    uploaded_by          uuid
-                                                             references users
-                                                                 on delete set null,
     uploaded_at          timestamp default CURRENT_TIMESTAMP,
     doc_no               varchar(100),
     dname                varchar(255),
     rdate                date,
     sro_name             varchar(255),
-    seller_name          varchar(255),
-    purchaser_name       varchar(255),
     property_description text,
     sro_code             varchar(50),
     status               varchar(50),
-    extra_data           jsonb     default '{}'::jsonb
+    extra_data           jsonb     default '{}'::jsonb,
+    property_id          uuid
+        references properties
+            on delete cascade,
+    seller_name          text[],
+    purchaser_name       text[]
 );
+
+CREATE TYPE job_status AS ENUM ('scheduled', 'in_progress', 'done', 'failed');
 
 create table jobs
 (
@@ -79,11 +89,14 @@ create table parties
     party_id     uuid  default gen_random_uuid() not null
         primary key,
     name         varchar(150)                    not null,
-    contact_info jsonb default '{}'::jsonb
+    contact_info jsonb default '{}'::jsonb,
+    state        varchar(100),
+    district     varchar(100),
+    tahasil      varchar(100),
+    city         varchar(100),
+    village      varchar(100),
+    pan          varchar(100)
 );
-
-
-
 
 create table transactions
 (
