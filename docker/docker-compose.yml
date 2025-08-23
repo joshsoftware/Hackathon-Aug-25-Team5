@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio-local
+    ports:
+      - "9000:9000" # API port
+      - "9001:9001" # Console port
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    container_name: python-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - minio
+    environment:
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_SECURE=false
+      - PYTHONPATH=/app
+    volumes:
+      - ../service:/app
+    working_dir: /app
+    networks:
+      - app-network
+    command: python main.py
+
+volumes:
+  minio_data:
+
+networks:
+  app-network:
+    driver: bridge

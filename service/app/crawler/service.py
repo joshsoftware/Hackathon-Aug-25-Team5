@@ -25,6 +25,8 @@ except ImportError:
     from crawler.table_parser import parse_table_to_json
     from crawler.document_number_search import search_by_document_number
 
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
 SRO_URL = "https://freesearchigrservice.maharashtra.gov.in/"
 
 # Configure logging
