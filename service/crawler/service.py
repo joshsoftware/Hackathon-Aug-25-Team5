@@ -10,7 +10,20 @@ import time
 import os
 import json
 import traceback
-from table_parser import parse_table_to_json
+# Try both absolute and relative imports to support both direct script execution and module import
+try:
+    # For when running as a module (python -m crawler.service)
+    from .table_parser import parse_table_to_json
+    from .document_number_search import search_by_document_number
+except ImportError:
+    # For when running directly (python crawler/service.py)
+    import sys
+    import os
+    # Add the parent directory to sys.path
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Now we can import from crawler
+    from crawler.table_parser import parse_table_to_json
+    from crawler.document_number_search import search_by_document_number
 
 SRO_URL = "https://freesearchigrservice.maharashtra.gov.in/"
 
@@ -28,10 +41,29 @@ class CaptchaError(Exception):
 def enter_property_number(driver, property_number='15'):
     """Helper function to enter and validate property number"""
     try:
-        # Wait for property input to be clickable
-        property_input = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//input[@id='txtAttributeValue1']"))
-        )
+        # Try multiple selectors for property input (different forms have different IDs)
+        property_input_selectors = [
+            "//input[@id='txtAttributeValue1']",  # For Rest of Maharashtra form
+            "//input[@id='txtAttributeValue']",   # Alternative selector
+            "//input[contains(@id, 'txtAttributeValue')]",  # Partial match
+            "//input[@placeholder='Enter SurveyNo./CTSNo./MilkatNo./GatNo./PlotNo.']"  # By placeholder
+        ]
+        
+        property_input = None
+        for selector in property_input_selectors:
+            try:
+                property_input = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.XPATH, selector))
+                )
+                logger.info(f"Found property input with selector: {selector}")
+                break
+            except TimeoutException:
+                logger.warning(f"Property input selector failed: {selector}")
+                continue
+        
+        if not property_input:
+            logger.error("Could not find property input field with any selector")
+            return False
         
         # Clear any existing value
         property_input.clear()
@@ -52,17 +84,29 @@ def enter_property_number(driver, property_number='15'):
         logger.error(f"Error entering property number: {str(e)}")
         return False
 
-def process_captcha(driver, max_retries=3):
+def process_captcha(driver, use_document_number=False, max_retries=3):
     """
     Process CAPTCHA with validation and retry logic
-    Returns True if CAPTCHA is successfully processed and validated
+    Args:
+        driver: Selenium webdriver instance
+        use_document_number: If True, use selectors for Document Number form
+        max_retries: Maximum number of retry attempts
+    Returns:
+        bool: True if CAPTCHA is successfully processed and validated
     """
     def enter_and_validate_captcha():
         """Helper function to enter CAPTCHA and check field validation"""
         # Take screenshot of CAPTCHA
-        captcha_img = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptcha_new"))
-        )
+        if use_document_number:
+            # For Document Number form
+            captcha_img = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptcha1"))
+            )
+        else:
+            # For Property Details form
+            captcha_img = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptcha_new"))
+            )
         captcha_img.screenshot('captcha.png')
         
         # Process CAPTCHA image with enhanced preprocessing
@@ -108,7 +152,12 @@ def process_captcha(driver, max_retries=3):
         logger.info(f"CAPTCHA Text Detected: {captcha_text}")
         
         # Clear existing CAPTCHA input if any
-        captcha_input = driver.find_element(By.XPATH, "//input[@id='txtImg1']")
+        if use_document_number:
+            # For Document Number form
+            captcha_input = driver.find_element(By.XPATH, "//input[@id='TextBox1']")
+        else:
+            # For Property Details form
+            captcha_input = driver.find_element(By.XPATH, "//input[@id='txtImg1']")
         captcha_input.clear()
         captcha_input.send_keys(captcha_text)
         
@@ -147,24 +196,74 @@ def process_captcha(driver, max_retries=3):
             if attempt == 0:
                 logger.info("Performing initial CAPTCHA attempt")
                 enter_and_validate_captcha()
-                # Re-enter property number before clicking search
-                if not enter_property_number(driver):
-                    logger.error("Failed to re-enter property number")
-                    continue
-                search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
-                search_button.click()
+                # Re-enter property number before clicking search (only for Property Details form)
+                if not use_document_number:
+                    if not enter_property_number(driver):
+                        logger.error("Failed to re-enter property number")
+                        continue
+                    search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
+                    search_button.click()
+                else:
+                    # For Document Number form, find the search button
+                    search_button_selectors = [
+                        "//input[@type='submit' and contains(@value, 'Search')]",
+                        "//input[@type='submit' and @id='btnSearch']",
+                        "//input[@type='submit' and @id='btnSearchDoc']",
+                        "//input[@type='submit' and not(@id='btnCancelDoc')]"  # Any submit button that's not Cancel
+                    ]
+                    
+                    search_button = None
+                    for selector in search_button_selectors:
+                        try:
+                            elements = driver.find_elements(By.XPATH, selector)
+                            if elements:
+                                search_button = elements[0]
+                                break
+                        except Exception as selector_error:
+                            logger.warning(f"Error with selector {selector}: {str(selector_error)}")
+                    
+                    if search_button:
+                        search_button.click()
+                    else:
+                        logger.error("Could not find search button for Document Number form")
+                        return False
                 time.sleep(2)  # Wait for page to refresh
                 continue
             
             # Subsequent attempts
             if enter_and_validate_captcha():
-                # Re-enter property number before clicking search
-                if not enter_property_number(driver):
-                    logger.error("Failed to re-enter property number")
-                    continue
-                # If field validation passes, click search
-                search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
-                search_button.click()
+                # Re-enter property number before clicking search (only for Property Details form)
+                if not use_document_number:
+                    if not enter_property_number(driver):
+                        logger.error("Failed to re-enter property number")
+                        continue
+                    # If field validation passes, click search
+                    search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
+                    search_button.click()
+                else:
+                    # For Document Number form, find the search button
+                    search_button_selectors = [
+                        "//input[@type='submit' and contains(@value, 'Search')]",
+                        "//input[@type='submit' and @id='btnSearch']",
+                        "//input[@type='submit' and @id='btnSearchDoc']",
+                        "//input[@type='submit' and not(@id='btnCancelDoc')]"  # Any submit button that's not Cancel
+                    ]
+                    
+                    search_button = None
+                    for selector in search_button_selectors:
+                        try:
+                            elements = driver.find_elements(By.XPATH, selector)
+                            if elements:
+                                search_button = elements[0]
+                                break
+                        except Exception as selector_error:
+                            logger.warning(f"Error with selector {selector}: {str(selector_error)}")
+                    
+                    if search_button:
+                        search_button.click()
+                    else:
+                        logger.error("Could not find search button for Document Number form")
+                        return False
                 
                 # Wait for page response
                 time.sleep(2)
@@ -191,79 +290,102 @@ def process_captcha(driver, max_retries=3):
     
     return False
 
-def fill_form(driver):
-    """Fill the search form with required details"""
+def fill_form(driver, use_document_number=False, doc_number="13327"):
+    """
+    Fill the search form with required details
+    Args:
+        driver: Selenium webdriver instance
+        use_document_number: If True, select Document Number instead of Property Details
+        doc_number: Document number to search for (default: "13327")
+    """
     try:
-        # Wait for and click Other District Search
-        other_district_btn = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//input[@id='btnOtherdistrictSearch']"))
-        )
-        other_district_btn.click()
-        
-        # Select year
-        year_dropdown = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//select[@id='ddlFromYear1']"))
-        )
-        Select(year_dropdown).select_by_index(4)
-        
-        # Select district
-        district_dropdown = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "#ddlDistrict1"))
-        )
-        Select(district_dropdown).select_by_index(1)
-        
-        # Wait longer for talukas to load
-        time.sleep(5)  # Increased from 3 to 5 seconds
-        
-        # Get taluka dropdown and check available options
-        taluka_dropdown = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//select[@id='ddltahsil']"))
-        )
-        taluka_select = Select(taluka_dropdown)
-        taluka_options = taluka_select.options
-        
-        # Log available taluka options
-        logger.info(f"Found {len(taluka_options)} taluka options")
-        for i, option in enumerate(taluka_options):
-            logger.info(f"Taluka option {i}: {option.text}")
-        
-        # Select a valid taluka option
-        taluka_index = min(13, len(taluka_options) - 1)  # Use 13 if available, otherwise use the last option
-        if taluka_index > 0:  # Skip the first option if there are more options (usually a placeholder)
-            logger.info(f"Selecting taluka option at index {taluka_index}")
-            taluka_select.select_by_index(taluka_index)
+        # Conditional selection between Property Details and Document Number
+        if use_document_number:
+            logger.info("Using document_number_search module for Document Number search")
+            return search_by_document_number(driver, doc_number)
         else:
-            logger.info("No valid taluka options found, using default")
-        
-        # Wait longer for villages to load
-        time.sleep(5)  # Increased from 3 to 5 seconds
-        
-        # Get village dropdown and check available options
-        village_dropdown = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//select[@id='ddlvillage']"))
-        )
-        village_select = Select(village_dropdown)
-        village_options = village_select.options
-        
-        # Log available village options
-        logger.info(f"Found {len(village_options)} village options")
-        for i, option in enumerate(village_options):
-            logger.info(f"Village option {i}: {option.text}")
-        
-        # Select a valid village option
-        village_index = min(1, len(village_options) - 1)  # Use 1 if available, otherwise use the last option
-        if village_index > 0:  # Skip the first option if there are more options (usually a placeholder)
-            logger.info(f"Selecting village option at index {village_index}")
-            village_select.select_by_index(village_index)
-        else:
-            logger.info("No valid village options found, using default")
-        
-        # Enter property number
-        if not enter_property_number(driver):
-            return False
+            logger.info("Using original Property Details search logic")
             
-        logger.info("Form filled successfully")
-        return True
+            # Original working property details search logic
+            # Click on "Rest of Maharashtra" button (it's a button, not a link)
+            rest_of_maharashtra_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//input[@id='btnOtherdistrictSearch']"))
+            )
+            rest_of_maharashtra_button.click()
+            logger.info("Clicked on Rest of Maharashtra button")
+            
+            # Wait for the form to load
+            time.sleep(3)
+            
+            # Select year
+            year_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@id='ddlFromYear1']"))
+            )
+            Select(year_dropdown).select_by_index(4)
+            logger.info("Selected year")
+            
+            # Select district
+            district_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#ddlDistrict1"))
+            )
+            Select(district_dropdown).select_by_index(1)
+            logger.info("Selected district")
+            
+            # Wait for talukas to load
+            time.sleep(3)
+            
+            # Select taluka with better error handling
+            taluka_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@id='ddltahsil']"))
+            )
+            taluka_select = Select(taluka_dropdown)
+            taluka_options = taluka_select.options
+            logger.info(f"Found {len(taluka_options)} taluka options")
+            
+            # Log available taluka options
+            for i, option in enumerate(taluka_options):
+                logger.info(f"Taluka option {i}: {option.text}")
+            
+            # Select a valid taluka option
+            taluka_index = min(13, len(taluka_options) - 1)  # Use 13 if available, otherwise use the last option
+            if taluka_index > 0:  # Skip the first option if there are more options (usually a placeholder)
+                logger.info(f"Selecting taluka option at index {taluka_index}")
+                taluka_select.select_by_index(taluka_index)
+            else:
+                logger.info("No valid taluka options found, using default")
+            
+            # Wait for villages to load
+            time.sleep(3)
+            
+            # Select village with better error handling
+            village_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@id='ddlvillage']"))
+            )
+            village_select = Select(village_dropdown)
+            village_options = village_select.options
+            
+            # Log available village options
+            logger.info(f"Found {len(village_options)} village options")
+            for i, option in enumerate(village_options):
+                logger.info(f"Village option {i}: {option.text}")
+            
+            # Select a valid village option
+            village_index = min(1, len(village_options) - 1)  # Use 1 if available, otherwise use the last option
+            if village_index > 0:  # Skip the first option if there are more options (usually a placeholder)
+                logger.info(f"Selecting village option at index {village_index}")
+                village_select.select_by_index(village_index)
+            else:
+                logger.info("No valid village options found, using default")
+            
+            # Wait for page to stabilize after village selection
+            time.sleep(3)
+            
+            # Enter property number
+            if not enter_property_number(driver):
+                return False
+            
+            logger.info("Form filled successfully")
+            return True
         
     except Exception as e:
         logger.error(f"Error filling form: {str(e)}")
@@ -681,7 +803,7 @@ def extract_table_data(driver):
             "data": []
         }
 
-def main(debug_mode=True):
+def main(debug_mode=True, use_document_number=False, doc_number="13327"):
     driver = None
     try:
         # Initialize browser with longer page load timeout
@@ -690,11 +812,29 @@ def main(debug_mode=True):
         options.page_load_strategy = 'normal'  # Wait for page load
         driver = webdriver.Chrome(options=options)
         driver.maximize_window()
-        driver.set_page_load_timeout(60)  # Increased to 60 seconds timeout
+        driver.set_page_load_timeout(120)  # Increased to 120 seconds timeout
         
-        # Navigate to website
-        logger.info("Navigating to Maharashtra IGR service...")
-        driver.get(SRO_URL)
+        # Navigate to website with retry logic
+        max_retries = 3
+        for retry in range(max_retries):
+            try:
+                logger.info(f"Navigating to Maharashtra IGR service (attempt {retry+1}/{max_retries})...")
+                driver.get(SRO_URL)
+                # If we get here, the navigation was successful
+                logger.info("Successfully navigated to the website")
+                break
+            except TimeoutException as e:
+                if retry < max_retries - 1:
+                    logger.warning(f"Page load timeout on attempt {retry+1}, retrying...")
+                    # Try to refresh the page
+                    try:
+                        driver.refresh()
+                    except:
+                        pass
+                else:
+                    # This is the last retry, re-raise the exception
+                    logger.error(f"Page load timeout after {max_retries} attempts")
+                    raise
         
         # Wait for page to be fully loaded
         WebDriverWait(driver, 20).until(
@@ -711,13 +851,18 @@ def main(debug_mode=True):
         except TimeoutException:
             logger.warning("No popup found or timeout waiting for popup")
         
-        # Fill the form
-        if not fill_form(driver):
+        # Fill the form with conditional selection
+        if not fill_form(driver, use_document_number, doc_number):
             logger.error("Failed to fill form")
             return
         
-        # Process CAPTCHA with retries
-        if not process_captcha(driver):
+        # If using document number search, the CAPTCHA and table extraction are handled in the search_by_document_number function
+        if use_document_number:
+            logger.info("Document number search completed")
+            return
+        
+        # Process CAPTCHA with retries (only for property details search)
+        if not process_captcha(driver, use_document_number):
             logger.error("Failed to process CAPTCHA")
             return
             
@@ -748,4 +893,9 @@ def main(debug_mode=True):
             driver.quit()
 
 if __name__ == "__main__":
-    main(debug_mode=True)  # Set to False to close browser automatically
+    # You can set use_document_number=True to use Document Number instead of Property Details
+    # Example condition: You can implement your own condition here
+    use_document_number_condition = True  # Set to True to test Document Number selection
+    doc_number = "13327"  # Document number to search for
+    
+    main(debug_mode=True, use_document_number=use_document_number_condition, doc_number=doc_number)  # Set debug_mode to False to close browser automatically
