@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, BarChart3, Upload, Bell } from "lucide-react";
+import { FileText, Clock, BarChart3, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,7 +11,6 @@ export function Navigation() {
   const navItems = [
     { path: "/", label: "Home", icon: FileText },
     { path: "/upload", label: "Upload", icon: Upload },
-    { path: "/timeline", label: "Timeline", icon: Clock },
     { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
   ];
 
@@ -21,7 +20,7 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
             <Link href="/" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              PropertyLegal Pro
+              PropertyLegal 
             </Link>
             <div className="hidden md:flex space-x-2">
               {navItems.map(({ path, label, icon: Icon }) => (
@@ -47,10 +46,6 @@ export function Navigation() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="rounded-full relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
             <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-foreground">Sarah Thompson</p>

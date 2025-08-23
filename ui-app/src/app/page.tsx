@@ -50,7 +50,6 @@ const benefits = [
 export default function Home() {
   return (
     <main className="space-y-0">
-      <Navigation/>
       {/* Hero Section */}
       <section className="relative py-24 lg:py-32 overflow-hidden">
         {/* Background with modern gradient */}
