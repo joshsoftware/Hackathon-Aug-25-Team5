@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle, Clock, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const statusSteps = [
   { id: "parsing", label: "Document Parsing", icon: FileText },
@@ -178,161 +179,163 @@ export default function DocumentUpload() {
   }
 
   return (
-    <div className="bg-gradient-to-r from-gray-100 via-gray-50 to-white py-8 shadow-md w-full">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-foreground">
-            Document Upload & Processing
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Upload your property documents for automated analysis and timeline generation
-          </p>
-        </div>
-
-        {/* Upload Area */}
-        <Card className="shadow-lg rounded-2xl overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-2xl">Upload Property Document</CardTitle>
-            <CardDescription className="text-lg">
-              Drag and drop your property PDF document or click to browse
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div
-              className={`
-                border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300
-                ${isDragOver ? "border-blue-500 bg-blue-50 shadow-lg" : "border-gray-300"}
-                ${isProcessing ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 hover:bg-blue-50 hover:shadow-md"}
-              `}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onClick={() => !isProcessing && document.getElementById("file-input")?.click()}
-            >
-              {uploadedFile ? (
-                <div className="space-y-4">
-                  <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-4" />
-                  <h3 className="text-lg font-medium text-green-700 mb-2">Upload Complete!</h3>
-                  <p className="text-green-600 mb-4">{uploadedFile.name}</p>
-                </div>
-              ) : (
-                <>
-                  <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Drop your document here</h3>
-                  <p className="text-gray-500 mb-4">
-                    Supports PDF files up to 50MB
-                  </p>
-                  <Button variant="outline" disabled={isProcessing}>
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Browse Files
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
-            </div>
-
-            <input
-              id="file-input"
-              type="file"
-              accept=".pdf"
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              disabled={isProcessing}
-            />
-
-            {/* Progress Section - Show only when processing */}
-            {isProcessing && (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Upload Progress</span>
-                    <span className="text-sm text-gray-500">{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} className="h-2" />
-                </div>
-
-                {/* Status Steps */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-gray-500">Processing Status</h4>
-                  <div className="space-y-3">
-                    {statusSteps.map((step, index) => {
-                      const Icon = step.icon;
-                      const isActive = index === currentStep;
-                      const isCompleted = index < currentStep;
-                      
-                      return (
-                        <div
-                          key={step.id}
-                          className={`
-                            flex items-center space-x-3 p-3 rounded-lg transition-all duration-300
-                            ${isActive ? "bg-blue-50 border border-blue-200" : ""}
-                            ${isCompleted ? "bg-green-50" : ""}
-                          `}
-                        >
-                          <div
-                            className={`
-                              w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
-                              ${isCompleted ? "bg-green-500 text-white" : ""}
-                              ${isActive ? "bg-blue-500 text-white" : "bg-gray-200"}
-                              ${!isActive && !isCompleted ? "text-gray-400" : ""}
-                            `}
-                          >
-                            {isCompleted ? (
-                              <CheckCircle className="w-4 h-4" />
-                            ) : isActive ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Icon className="w-4 h-4" />
-                            )}
-                          </div>
-                          <span
-                            className={`
-                              font-medium transition-all duration-300
-                              ${isActive || isCompleted ? "text-gray-900" : "text-gray-500"}
-                            `}
-                          >
-                            {step.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Info Card */}
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Info className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="font-medium text-blue-900 mb-1">Supported Documents</h3>
-              <p className="text-sm text-blue-700 mb-3">
-                We accept property documents including title deeds, property searches, 
-                legal certificates, and related documentation in PDF format.
-              </p>
-              <ul className="text-sm text-blue-600 space-y-1">
-                <li>• Maximum file size: 50MB per document</li>
-                <li>• Multiple documents can be uploaded simultaneously</li>
-                <li>• Documents are processed using bank-level encryption</li>
-              </ul>
-            </div>
+    <ProtectedRoute>
+      <div className="bg-gradient-to-r from-gray-100 via-gray-50 to-white py-8 shadow-md w-full">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-bold text-foreground">
+              Document Upload & Processing
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Upload your property documents for automated analysis and timeline generation
+            </p>
           </div>
-        </Card>
+
+          {/* Upload Area */}
+          <Card className="shadow-lg rounded-2xl overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-2xl">Upload Property Document</CardTitle>
+              <CardDescription className="text-lg">
+                Drag and drop your property PDF document or click to browse
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div
+                className={`
+                  border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300
+                  ${isDragOver ? "border-blue-500 bg-blue-50 shadow-lg" : "border-gray-300"}
+                  ${isProcessing ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-blue-500 hover:bg-blue-50 hover:shadow-md"}
+                `}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => !isProcessing && document.getElementById("file-input")?.click()}
+              >
+                {uploadedFile ? (
+                  <div className="space-y-4">
+                    <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                    <h3 className="text-lg font-medium text-green-700 mb-2">Upload Complete!</h3>
+                    <p className="text-green-600 mb-4">{uploadedFile.name}</p>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Drop your document here</h3>
+                    <p className="text-gray-500 mb-4">
+                      Supports PDF files up to 50MB
+                    </p>
+                    <Button variant="outline" disabled={isProcessing}>
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Browse Files
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <input
+                id="file-input"
+                type="file"
+                accept=".pdf"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e.target.files)}
+                disabled={isProcessing}
+              />
+
+              {/* Progress Section - Show only when processing */}
+              {isProcessing && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Upload Progress</span>
+                      <span className="text-sm text-gray-500">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+
+                  {/* Status Steps */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-gray-500">Processing Status</h4>
+                    <div className="space-y-3">
+                      {statusSteps.map((step, index) => {
+                        const Icon = step.icon;
+                        const isActive = index === currentStep;
+                        const isCompleted = index < currentStep;
+                        
+                        return (
+                          <div
+                            key={step.id}
+                            className={`
+                              flex items-center space-x-3 p-3 rounded-lg transition-all duration-300
+                              ${isActive ? "bg-blue-50 border border-blue-200" : ""}
+                              ${isCompleted ? "bg-green-50" : ""}
+                            `}
+                          >
+                            <div
+                              className={`
+                                w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                ${isCompleted ? "bg-green-500 text-white" : ""}
+                                ${isActive ? "bg-blue-500 text-white" : "bg-gray-200"}
+                                ${!isActive && !isCompleted ? "text-gray-400" : ""}
+                              `}
+                            >
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4" />
+                              ) : isActive ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Icon className="w-4 h-4" />
+                              )}
+                            </div>
+                            <span
+                              className={`
+                                font-medium transition-all duration-300
+                                ${isActive || isCompleted ? "text-gray-900" : "text-gray-500"}
+                              `}
+                            >
+                              {step.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Info Card */}
+          <Card className="p-6 bg-blue-50 border-blue-200">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Info className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-900 mb-1">Supported Documents</h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  We accept property documents including title deeds, property searches, 
+                  legal certificates, and related documentation in PDF format.
+                </p>
+                <ul className="text-sm text-blue-600 space-y-1">
+                  <li>• Maximum file size: 50MB per document</li>
+                  <li>• Multiple documents can be uploaded simultaneously</li>
+                  <li>• Documents are processed using bank-level encryption</li>
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 } 

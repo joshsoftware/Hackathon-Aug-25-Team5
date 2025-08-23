@@ -1,10 +1,12 @@
 'use client';
 
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, FileText, Users, AlertTriangle } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Timeline data for different reports
 const timelineData = {
@@ -218,8 +220,15 @@ const getTypeColor = (type: string) => {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
+  
+  // Prevent hydration mismatch by ensuring component is mounted
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const currentTimelineEvents = selectedReport 
     ? timelineData[selectedReport as keyof typeof timelineData] || defaultTimelineEvents
@@ -228,7 +237,6 @@ export default function Dashboard() {
   const handleViewTimeline = (reportTitle: string) => {
     setSelectedReport(reportTitle);
     
-    // Scroll to timeline section
     if (timelineRef.current) {
       timelineRef.current.scrollIntoView({ 
         behavior: 'smooth',
@@ -244,152 +252,159 @@ export default function Dashboard() {
     return "Property History Timeline";
   };
 
+  // Don't render until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Reports Section */}
-        <div className="max-w-6xl mx-auto mt-12">
-          <Card className="shadow-medium">
-            <CardHeader>
-              <CardTitle className="text-chart-2 text-2xl">Recent Analysis Reports</CardTitle>
-              <CardDescription>
-                Latest generated property legal reports and documentation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  {
-                    title: "Comprehensive Portfolio Risk Assessment Q4 2023",
-                    type: "Portfolio Report",
-                    date: "December 15, 2023",
-                    size: "2.4 MB",
-                    status: "Ready"
-                  },
-                  {
-                    title: "123 Main Street - Individual Property Analysis",
-                    type: "Property Report",
-                    date: "December 10, 2023",
-                    size: "1.1 MB",
-                    status: "Ready"
-                  },
-                  {
-                    title: "Lien Analysis Summary - November 2023",
-                    type: "Summary Report",
-                    date: "November 30, 2023",
-                    size: "856 KB",
-                    status: "Ready"
-                  },
-                ].map((report, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-soft transition-smooth  hover:border-chart-2/30"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">{report.title}</h4>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span>{report.type}</span>
-                          <span>•</span>
-                          <span>{report.date}</span>
-                          <span>•</span>
-                          <span>{report.size}</span>
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Reports Section */}
+          <div className="max-w-6xl mx-auto mt-12">
+            <Card className="shadow-medium">
+              <CardHeader>
+                <CardTitle className="text-chart-2 text-2xl">Recent Analysis Reports</CardTitle>
+                <CardDescription>
+                  Latest generated property legal reports and documentation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    {
+                      title: "Comprehensive Portfolio Risk Assessment Q4 2023",
+                      type: "Portfolio Report",
+                      date: "December 15, 2023",
+                      size: "2.4 MB",
+                      status: "Ready"
+                    },
+                    {
+                      title: "123 Main Street - Individual Property Analysis",
+                      type: "Property Report",
+                      date: "December 10, 2023",
+                      size: "1.1 MB",
+                      status: "Ready"
+                    },
+                    {
+                      title: "Lien Analysis Summary - November 2023",
+                      type: "Summary Report",
+                      date: "November 30, 2023",
+                      size: "856 KB",
+                      status: "Ready"
+                    },
+                  ].map((report, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-soft transition-smooth  hover:border-chart-2/30"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-primary" />
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Button 
-                        variant="outline" 
-                        size="lg"
-                        className="transition-colors cursor-pointer group"
-                        onClick={() => handleViewTimeline(report.title)}
-                      >
-                        <Clock className="w-4 h-4 mr-2" />
-                        <span className="group-hover:cursor-pointer">View Timeline</span>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Header */}
-        <div className="text-center space-y-4" ref={timelineRef}>
-          <h1 className="text-3xl font-bold text-foreground">
-            Property Timeline Visualization
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Complete chronological history of 123 Main Street, Anytown, ST 12345
-          </p>
-        </div>
-
-        {/* Timeline Events */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="shadow-medium">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>{getTimelineTitle()}</CardTitle>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="transition-colors cursor-pointer hover:cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Export Report
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border"></div>
-                
-                {currentTimelineEvents.map((event, index) => {
-                  const Icon = event.icon;
-                  return (
-                    <div key={event.id} className="relative flex items-start space-x-6 pb-8">
-                      {/* Timeline dot */}
-                      <div className="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-card border-2 border-primary shadow-soft">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      
-                      {/* Event content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="p-4 rounded-lg border bg-card shadow-soft hover:shadow-medium transition-smooth">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="space-y-1">
-                              <h3 className="font-semibold text-foreground">{event.title}</h3>
-                              <p className="text-sm text-chart-3 flex items-center font-medium bg-secondary px-2 py-1 rounded-md border">
-                                <Calendar className="w-4 h-4 mr-1 text-chart-3" />
-                                {event.date}
-                              </p>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className={`${getTypeColor(event.type)} rounded-2xl px-3 py-1.5 text-sm font-medium`}>
-                                {event.type}
-                              </Badge>
-                            </div>
+                        <div>
+                          <h4 className="font-medium text-foreground">{report.title}</h4>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span>{report.type}</span>
+                            <span>•</span>
+                            <span>{report.date}</span>
+                            <span>•</span>
+                            <span>{report.size}</span>
                           </div>
-                          
-                          <p className="text-foreground mb-2">{event.description}</p>
-                          <p className="text-sm text-muted-foreground">{event.details}</p>
                         </div>
                       </div>
+                      <div className="flex items-center space-x-3">
+                        <Button 
+                          variant="outline" 
+                          size="lg"
+                          className="transition-colors cursor-pointer group"
+                          onClick={() => handleViewTimeline(report.title)}
+                        >
+                          <Clock className="w-4 h-4 mr-2" />
+                          <span className="group-hover:cursor-pointer">View Timeline</span>
+                        </Button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Header */}
+          <div className="text-center space-y-4" ref={timelineRef}>
+            <h1 className="text-3xl font-bold text-foreground">
+              Property Timeline Visualization
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Complete chronological history of 123 Main Street, Anytown, ST 12345
+            </p>
+          </div>
+
+          {/* Timeline Events */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="shadow-medium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{getTimelineTitle()}</CardTitle>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="transition-colors cursor-pointer hover:cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Export Report
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="relative">
+                  {/* Timeline line */}
+                  <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border"></div>
+                  
+                  {currentTimelineEvents.map((event, index) => {
+                    const Icon = event.icon;
+                    return (
+                      <div key={event.id} className="relative flex items-start space-x-6 pb-8">
+                        {/* Timeline dot */}
+                        <div className="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-card border-2 border-primary shadow-soft">
+                          <Icon className="w-5 h-5 text-primary" />
+                        </div>
+                        
+                        {/* Event content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="p-4 rounded-lg border bg-card shadow-soft hover:shadow-medium transition-smooth">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="space-y-1">
+                                <h3 className="font-semibold text-foreground">{event.title}</h3>
+                                <p className="text-sm text-chart-3 flex items-center font-medium bg-secondary px-2 py-1 rounded-md border">
+                                  <Calendar className="w-4 h-4 mr-1 text-chart-3" />
+                                  {event.date}
+                                </p>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline" className={`${getTypeColor(event.type)} rounded-2xl px-3 py-1.5 text-sm font-medium`}>
+                                  {event.type}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <p className="text-foreground mb-2">{event.description}</p>
+                            <p className="text-sm text-muted-foreground">{event.details}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
