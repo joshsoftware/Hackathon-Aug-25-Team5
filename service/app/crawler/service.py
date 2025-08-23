@@ -86,12 +86,13 @@ def enter_property_number(driver, property_number='15'):
         logger.error(f"Error entering property number: {str(e)}")
         return False
 
-def process_captcha(driver, use_document_number=False, max_retries=3):
+def process_captcha(driver, use_document_number=False, use_urban_area=False, max_retries=3):
     """
     Process CAPTCHA with validation and retry logic
     Args:
         driver: Selenium webdriver instance
         use_document_number: If True, use selectors for Document Number form
+        use_urban_area: If True, use selectors for Urban Area form
         max_retries: Maximum number of retry attempts
     Returns:
         bool: True if CAPTCHA is successfully processed and validated
@@ -104,8 +105,13 @@ def process_captcha(driver, use_document_number=False, max_retries=3):
             captcha_img = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptcha1"))
             )
+        elif use_urban_area:
+            # For Urban Area form
+            captcha_img = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptchaUrban"))
+            )
         else:
-            # For Property Details form
+            # For Property Details form (Rest of Maharashtra)
             captcha_img = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#imgCaptcha_new"))
             )
@@ -157,8 +163,11 @@ def process_captcha(driver, use_document_number=False, max_retries=3):
         if use_document_number:
             # For Document Number form
             captcha_input = driver.find_element(By.XPATH, "//input[@id='TextBox1']")
+        elif use_urban_area:
+            # For Urban Area form
+            captcha_input = driver.find_element(By.XPATH, "//input[@id='txtImgUrban']")
         else:
-            # For Property Details form
+            # For Property Details form (Rest of Maharashtra)
             captcha_input = driver.find_element(By.XPATH, "//input[@id='txtImg1']")
         captcha_input.clear()
         captcha_input.send_keys(captcha_text)
@@ -200,11 +209,20 @@ def process_captcha(driver, use_document_number=False, max_retries=3):
                 enter_and_validate_captcha()
                 # Re-enter property number before clicking search (only for Property Details form)
                 if not use_document_number:
-                    if not enter_property_number(driver):
-                        logger.error("Failed to re-enter property number")
-                        continue
-                    search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
-                    search_button.click()
+                    if use_urban_area:
+                        # For Urban Area form, re-enter property number
+                        property_input_urban = driver.find_element(By.XPATH, "//input[@id='txtAttributeValueUrban']")
+                        property_input_urban.clear()
+                        property_input_urban.send_keys('15')
+                        search_button = driver.find_element(By.XPATH, "//input[@id='btnSearchUrban']")
+                        search_button.click()
+                    else:
+                        # For Rest of Maharashtra form
+                        if not enter_property_number(driver):
+                            logger.error("Failed to re-enter property number")
+                            continue
+                        search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
+                        search_button.click()
                 else:
                     # For Document Number form, find the search button
                     search_button_selectors = [
@@ -236,12 +254,22 @@ def process_captcha(driver, use_document_number=False, max_retries=3):
             if enter_and_validate_captcha():
                 # Re-enter property number before clicking search (only for Property Details form)
                 if not use_document_number:
-                    if not enter_property_number(driver):
-                        logger.error("Failed to re-enter property number")
-                        continue
-                    # If field validation passes, click search
-                    search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
-                    search_button.click()
+                    if use_urban_area:
+                        # For Urban Area form, re-enter property number
+                        property_input_urban = driver.find_element(By.XPATH, "//input[@id='txtAttributeValueUrban']")
+                        property_input_urban.clear()
+                        property_input_urban.send_keys('15')
+                        # If field validation passes, click search
+                        search_button = driver.find_element(By.XPATH, "//input[@id='btnSearchUrban']")
+                        search_button.click()
+                    else:
+                        # For Rest of Maharashtra form
+                        if not enter_property_number(driver):
+                            logger.error("Failed to re-enter property number")
+                            continue
+                        # If field validation passes, click search
+                        search_button = driver.find_element(By.XPATH, "//input[@id='btnSearch_RestMaha']")
+                        search_button.click()
                 else:
                     # For Document Number form, find the search button
                     search_button_selectors = [
@@ -292,19 +320,83 @@ def process_captcha(driver, use_document_number=False, max_retries=3):
     
     return False
 
-def fill_form(driver, use_document_number=False, doc_number="13327"):
+def fill_form(driver, use_document_number=False, doc_number="13327", use_urban_area=False):
     """
     Fill the search form with required details
     Args:
         driver: Selenium webdriver instance
         use_document_number: If True, select Document Number instead of Property Details
         doc_number: Document number to search for (default: "13327")
+        use_urban_area: If True, select Urban Areas instead of Rest of Maharashtra
     """
     try:
         # Conditional selection between Property Details and Document Number
         if use_document_number:
             logger.info("Using document_number_search module for Document Number search")
             return search_by_document_number(driver, doc_number)
+        elif use_urban_area:
+            logger.info("Using Urban Area Property Details search logic")
+            
+            # Click on "Urban Areas in Rest of Maharashtra" button
+            urban_area_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//input[@id='btnUrbansearch']"))
+            )
+            urban_area_button.click()
+            logger.info("Clicked on Urban Areas in Rest of Maharashtra button")
+            
+            # Wait for the Urban Area form to load
+            time.sleep(3)
+            
+            # Select year for Urban Area form
+            year_dropdown_urban = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@id='ddlFromYearUrban']"))
+            )
+            Select(year_dropdown_urban).select_by_index(4)  # Select a year (e.g., 2021)
+            logger.info("Selected year for Urban Area")
+            
+            # Select district for Urban Area form
+            district_dropdown_urban = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#ddlDistrictUrban"))
+            )
+            Select(district_dropdown_urban).select_by_index(1)  # Select first available district
+            logger.info("Selected district for Urban Area")
+            
+            # Wait for areas to load
+            time.sleep(3)
+            
+            # Select area with better error handling
+            area_dropdown = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@id='ddlareanameUrban']"))
+            )
+            area_select = Select(area_dropdown)
+            area_options = area_select.options
+            logger.info(f"Found {len(area_options)} area options")
+            
+            # Log available area options
+            for i, option in enumerate(area_options):
+                logger.info(f"Area option {i}: {option.text}")
+            
+            # Select a valid area option
+            area_index = min(1, len(area_options) - 1)  # Use 1 if available, otherwise use the last option
+            if area_index > 0:  # Skip the first option if there are more options (usually a placeholder)
+                logger.info(f"Selecting area option at index {area_index}")
+                area_select.select_by_index(area_index)
+            else:
+                logger.info("No valid area options found, using default")
+            
+            # Wait for page to stabilize after area selection
+            time.sleep(3)
+            
+            # Enter property number for Urban Area form
+            property_input_urban = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//input[@id='txtAttributeValueUrban']"))
+            )
+            property_input_urban.clear()
+            property_input_urban.send_keys('15')  # Default property number
+            logger.info("Entered property number for Urban Area")
+            
+            logger.info("Urban Area form filled successfully")
+            return True
         else:
             logger.info("Using original Property Details search logic")
             
@@ -805,7 +897,7 @@ def extract_table_data(driver):
             "data": []
         }
 
-def main(debug_mode=True, use_document_number=False, doc_number="13327"):
+def main(debug_mode=True, use_document_number=False, doc_number="13327", use_urban_area=False):
     driver = None
     try:
         # Initialize browser with longer page load timeout
@@ -854,7 +946,7 @@ def main(debug_mode=True, use_document_number=False, doc_number="13327"):
             logger.warning("No popup found or timeout waiting for popup")
         
         # Fill the form with conditional selection
-        if not fill_form(driver, use_document_number, doc_number):
+        if not fill_form(driver, use_document_number, doc_number, use_urban_area):
             logger.error("Failed to fill form")
             return
         
@@ -864,7 +956,7 @@ def main(debug_mode=True, use_document_number=False, doc_number="13327"):
             return
         
         # Process CAPTCHA with retries (only for property details search)
-        if not process_captcha(driver, use_document_number):
+        if not process_captcha(driver, use_document_number, use_urban_area):
             logger.error("Failed to process CAPTCHA")
             return
             
@@ -895,9 +987,13 @@ def main(debug_mode=True, use_document_number=False, doc_number="13327"):
             driver.quit()
 
 if __name__ == "__main__":
-    # You can set use_document_number=True to use Document Number instead of Property Details
-    # Example condition: You can implement your own condition here
-    use_document_number_condition = True  # Set to True to test Document Number selection
-    doc_number = "13327"  # Document number to search for
+    # You can set different boolean flags to test different search types:
+    # - use_document_number=True: Use Document Number search
+    # - use_urban_area=True: Use Urban Area Property Details search
+    # - Both False: Use Rest of Maharashtra Property Details search (default)
     
-    main(debug_mode=True, use_document_number=use_document_number_condition, doc_number=doc_number)  # Set debug_mode to False to close browser automatically
+    use_document_number_condition = True  # Set to True to test Document Number selection
+    use_urban_area_condition = False  # Set to True to test Urban Area selection
+    doc_number = "13327"  # Document number to search for (only used if use_document_number=True)
+    
+    main(debug_mode=True, use_document_number=use_document_number_condition, doc_number=doc_number, use_urban_area=use_urban_area_condition)  # Set debug_mode to False to close browser automatically
