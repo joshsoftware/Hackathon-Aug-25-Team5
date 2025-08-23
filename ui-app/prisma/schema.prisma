@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  fullName     String    @map("full_name") @db.VarChar(150)
+  email        String    @unique @db.VarChar(150)
+  passwordHash String    @map("password_hash")
+  roleId       String?   @map("role_id") @db.Uuid
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@map("users")
+}
+
+model Role {
+  role_id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_name String @unique @db.VarChar(50)
+
+  @@map("roles")
+}
+
+model documents {
+  document_id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  file_uri             String
+  uploaded_at          DateTime? @default(now()) @db.Timestamp(6)
+  doc_no               String?   @db.VarChar(100)
+  dname                String?   @db.VarChar(255)
+  rdate                DateTime? @db.Date
+  sro_name             String?   @db.VarChar(255)
+  property_description String?
+  sro_code             String?   @db.VarChar(50)
+  status               String?   @db.VarChar(50)
+  extra_data           Json?     @default("{}")
+  property_id          String?   @db.Uuid
+  seller_name          String[]
+  purchaser_name       String[]
+}
+
+model jobs {
+  job_id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_id   String?     @db.Uuid
+  job_type      String      @db.VarChar(50)
+  status        job_status? @default(scheduled)
+  created_at    DateTime?   @default(now()) @db.Timestamp(6)
+  started_at    DateTime?   @db.Timestamp(6)
+  finished_at   DateTime?   @db.Timestamp(6)
+  result        Json?       @default("{}")
+  error_message String?
+  property_id   String?     @db.Uuid
+}
+
+model parties {
+  party_id     String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String  @db.VarChar(150)
+  contact_info Json?   @default("{}")
+  state        String? @db.VarChar(100)
+  district     String? @db.VarChar(100)
+  tahasil      String? @db.VarChar(100)
+  city         String? @db.VarChar(100)
+  village      String? @db.VarChar(100)
+  pan          String? @db.VarChar(100)
+}
+
+model properties {
+  property_id String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  survey_no   String?        @db.VarChar(100)
+  metadata    Json?          @default("{}")
+  state       String?        @db.VarChar(100)
+  district    String?        @db.VarChar(100)
+  tahasil     String?        @db.VarChar(100)
+  city        String?        @db.VarChar(100)
+  village     String?        @db.VarChar(100)
+  locality    locality_type?
+}
+
+model transactions {
+  transaction_id   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  property_id      String?   @db.Uuid
+  seller_id        String?   @db.Uuid
+  purchaser_id     String?   @db.Uuid
+  transaction_date DateTime  @db.Date
+  amount           Decimal?  @db.Decimal(18, 2)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  document_id      String?   @db.Uuid
+}
+
+enum job_status {
+  scheduled
+  in_progress
+  done
+  failed
+}
+
+enum locality_type {
+  Urban
+  Local
+}
