@@ -182,7 +182,106 @@ def main():
     summarizer = LandDataSummarizer()
     
     # Load processed data
-    processed_data = summarizer.load_processed_data('data/processed/cleaned_data.json')
+    processed_data = '''
+    1. The Initial Agreement – 18th March 2009
+
+The first event recorded in the timeline took place on 18th March 2009, when an agreement was executed involving Venkatesh Developers and SR Developers. The legal documentation for this transaction was formalized under Document Number 791/2009.
+
+This event marks the origin point of the contractual chain, setting the foundation for subsequent dealings. Typically, such transactions involve either the transfer of development rights, collaboration agreements, or initial sales deeds. The involvement of two developer entities indicates that the land or project under discussion was likely under joint development or being handed over for execution from one party to another.
+
+2. Transfer to an Individual – 17th December 2009
+
+Later in the same year, on 17th December 2009, a significant transfer occurred. The transaction involved SR Developers transferring rights or agreements to Mr. Vivek Vidyasagar. This was documented under Document Number 7983/2009.
+
+This step shows the transition from a purely developer-to-developer arrangement into an arrangement where an individual buyer or investor entered the contractual chain. Mr. Vidyasagar became a key figure at this stage, representing the beginning of private ownership within the project. The entry of an individual often suggests that either units, flats, or portions of developed property were being allotted or that financial investment was being secured from a private buyer.
+
+3. New Agreement with Developers – 25th January 2011
+
+Roughly thirteen months later, on 25th January 2011, Mr. Vivek Vidyasagar entered into a new agreement with SR Developers. This agreement was officially recorded under Document Number 830/2011.
+
+This transaction is interesting because it shows continuity of engagement between the same individual and the developers. The presence of multiple agreements between the same parties within a short span often indicates:
+
+Modifications in the original terms (perhaps due to project delays or structural changes).
+
+Additional purchases or transfers of rights.
+
+Execution of a supplementary or rectification deed to correct or expand upon the earlier agreement.
+
+This document effectively strengthened the legal relationship between Mr. Vidyasagar and SR Developers.
+
+4. Branch Transaction – 28th January 2011
+
+Only three days after the previous transaction, on 28th January 2011, another event was documented. Here, SR Developers transferred rights or executed a document in favor of Ms. Shweta Dhiren, which was also associated with Document Number 830/2011.
+
+The use of the same document number suggests that this was not a completely new registration but rather a linked or supplementary record tied to the January 25th transaction. This might have involved co-ownership rights, joint purchasers being added, or subdivision of property share.
+
+With Ms. Dhiren’s entry into the chain, the ownership and contractual complexity increased, possibly creating multiple stakeholders with legal claims over the same or subdivided assets.
+
+5. Further Transfer – 7th December 2011
+
+By the end of 2011, another major development occurred. On 7th December 2011, SR Developers executed a fresh agreement involving Mr. Vinayak Behere. The transaction was documented under Document Number 11658/2011.
+
+This event marks a shift where another individual became a central stakeholder. Given the sequence of transactions, this could mean one of two things:
+
+Mr. Vidyasagar or Ms. Dhiren’s interests were transferred or sold to Mr. Behere.
+
+Alternatively, this could represent an additional unit or portion being sold, making Mr. Behere a new buyer within the same project.
+
+The documentation at this stage suggests that the property or development was undergoing progressive sale and distribution among multiple private owners, all linked back to the original SR Developers.
+
+6. Rental Agreement – 4th October 2014
+
+Three years later, on 4th October 2014, Mr. Vinayak Behere entered into a Rental Agreement, which was formally registered under Document Number 8912/2014.
+
+This step shows that Mr. Behere was not only holding ownership rights but also deriving economic benefit from the property by renting it out. Such an arrangement indicates that:
+
+The project had reached a stage of usable completion.
+
+Ownership had stabilized sufficiently for lease and rental activities to be formalized.
+
+Mr. Behere, as a property holder, was leveraging his asset for regular income generation.
+
+This rental agreement also reflects how property usage evolves over time—from development, to ownership transfer, to eventual utility in the form of rental accommodation.
+
+7. Final Transaction in the Chain – 2nd July 2021
+
+The final entry in the timeline took place on 2nd July 2021, when Mr. Vinayak Behere executed a transaction involving Mr. Amit K and Ms. Shravani P. This was registered under Document Number 8968/2021.
+
+This event closes the transactional loop by showing a fresh transfer of rights from Behere to new individuals. The entry of Amit K and Shravani P signals either a resale of the property, a gift deed, or another form of title transfer.
+
+By this point, the asset that originated under Venkatesh Developers in 2009 had passed through multiple owners, developers, and agreements, reflecting the lifecycle of many real estate projects in India. Over 12 years, the property transitioned across developers, private owners, rental use, and eventual resale to new stakeholders.
+
+Broader Analysis of the Transaction Chain
+1. Developer-to-Developer Transfers
+
+The earliest part of the chain involved two developer entities, which usually happens when projects are either outsourced, jointly developed, or sold for completion. This ensures that land or development rights move from a holding developer to an executing one.
+
+2. Entry of Individual Buyers
+
+From 2009 onwards, individual buyers like Mr. Vidyasagar and Ms. Dhiren became part of the chain. This marks the monetization phase of the development, where property assets are liquidated into smaller saleable units.
+
+3. Multiple Agreements in Short Succession
+
+The quick succession of agreements in January 2011 suggests rapid transactions or corrections, a common feature in real estate when multiple stakeholders are involved or when ownership shares are being fine-tuned.
+
+4. Long-Term Ownership and Rental
+
+The entry of Mr. Behere in 2011 and his continued presence through a rental agreement in 2014 and a transfer in 2021 shows a long-term ownership stake. Behere’s involvement spans a full decade, indicating stability in the chain before eventual resale.
+
+5. Resale and Conclusion
+
+The final resale in 2021 demonstrates how property ownership typically evolves: initial development, multiple transactions, stabilization, usage, and eventual resale to new buyers.
+
+Legal and Practical Implications
+
+Audit Trail of Ownership – Every step in the timeline provides a clear documentary trail that establishes legal ownership across 12 years.
+
+Potential for Disputes – With multiple transactions involving overlapping parties, there is always a possibility of title disputes if earlier agreements were not carefully structured.
+
+Rental Income – The 2014 rental agreement highlights the property’s commercial utility beyond ownership.
+
+Market Dynamics – The spread of transactions across 2009–2021 reflects the long gestation of real estate projects and the shifting priorities of owners (buying, holding, renting, reselling).
+    '''
     
     if processed_data:
         # Generate summaries
